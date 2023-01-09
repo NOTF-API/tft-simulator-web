@@ -1,0 +1,22 @@
+body {
+  width: 100vw;
+  height: 100vh;
+  /* transform: scale(0.87); */
+  /* display: flex; */
+  /* justify-content: center; */
+  /* align-items: center; */
+  /* overflow: hidden; */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+button,
+input {
+  border: none;
+  outline: none;
+}
