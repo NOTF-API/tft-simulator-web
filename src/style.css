@@ -20,3 +20,13 @@ input {
   border: none;
   outline: none;
 }
+
+@font-face {
+  font-family: "std";
+  src: url("/fonts/Font.TTF");
+}
+
+@font-face {
+  font-family: "bold";
+  src: url("/fonts/FontBold.TTF");
+}
