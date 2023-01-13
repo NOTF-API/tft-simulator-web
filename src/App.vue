@@ -1,45 +1,46 @@
 <template>
   <div class="app">
-    <img src="/boards/test.png" class="bg" />
+    <img class="arena" :src="arena.backgroundImageSrc" draggable="false" />
     <div class="bottom">
       <div class="ops">
-        <button class="buy-exp">
+        <button @click.left="handleBoostBtnClick" class="boost" :class="cost.boost > wallet ? 'disabled' : ''">
           <span class="inner">
-            <span class="text" :price="fee.level">购买经验值</span>
+            <span class="text" :price="cost.boost">购买经验值</span>
           </span>
           <span class="mask"></span>
         </button>
-        <button class="refresh">
+        <button @click.left="handleRerollBtnClick" class="reroll" :class="cost.reroll > wallet ? 'disabled' : ''">
           <span class="inner">
-            <span class="text" :price="fee.refresh">刷新</span>
+            <span class="text" :price="cost.reroll">刷新</span>
           </span>
           <span class="mask"></span>
         </button>
       </div>
       <div class="level">
-        <div class="text">{{ exp.level }}级 </div>
-        <div class="ex-text"> {{ exp.curr }}/{{ exp.max }}</div>
-        <div class="exp-bar-container">
-          <div class="exp-bar" :style="{ width: (exp.curr / exp.max) * 100 + '%' }"></div>
+        <div class="text">{{ experience.level }}级 </div>
+        <div class="ex-text"> {{ experience.curr }}/{{ experience.max }}</div>
+        <div class="experience-bar-container">
+          <div class="experience-bar" :style="{ width: (experience.curr / experience.max) * 100 + '%' }"></div>
         </div>
       </div>
-      <ul class="rate">
-        <li class="quality1">{{ rate.v1 }}</li>
-        <li class="quality2">{{ rate.v2 }}</li>
-        <li class="quality3">{{ rate.v3 }}</li>
-        <li class="quality4">{{ rate.v4 }}</li>
-        <li class="quality5">{{ rate.v5 }}</li>
+      <ul class="probability">
+        <li class="quality1">{{ probability.v1 }}</li>
+        <li class="quality2">{{ probability.v2 }}</li>
+        <li class="quality3">{{ probability.v3 }}</li>
+        <li class="quality4">{{ probability.v4 }}</li>
+        <li class="quality5">{{ probability.v5 }}</li>
       </ul>
       <div class="cards">
-        <div v-for="card in cards" :class="`quality${card.price} ${card.isHighLight ? 'high-light' : ''}`" class="card">
+        <div v-for="card in playerCardPool" @click.left="handleCardClick(card)" :class="computeCardClassName(card)"
+          class="card">
           <div class="image">
-            <img class="card-image" :src="card.image.src">
+            <img class="card-image" :src="card.image.src" draggable="false">
             <div class="relations">
               <span class="relation" v-for="j in card.traits">
                 <span class="traits-container">
                   <span class="traits" :class="j"></span>
                 </span>
-                <span>{{ "羁绊"}}</span>
+                <span>{{ "羁绊"}}</span>image.png
               </span>
             </div>
           </div>
@@ -48,13 +49,13 @@
           </div>
         </div>
       </div>
-      <div class="lock state-unlocked"></div>
+      <div class="lock" @click.left="handleLockBtnClick" :class="lock ? 'state-locked' : 'state-unlocked'"></div>
       <div class="wallet-shadow">
         <div class="wallet-outside-border">
           <div class="wallet-outside-background">
             <div class="wallet-inside-border">
               <div class="wallet-inside-background">
-                <div class="wallet-content">99</div>
+                <div class="wallet-content">{{ wallet }}</div>
               </div>
             </div>
           </div>
@@ -66,50 +67,124 @@
         <div class="aside-traits-outside-border">
           <div class="aside-traits-outside-background">
             <div class="aside-traits-inside-border">
-              <ul class="aside-traits-inside-background">
-                <li class="traits-item" :class="traits.quality" v-for="traits in traitss">
-                  <div class="traits-container">
-                    <img class="traits-icon" :src="`/seasons/s8/traits/${traits.id}.png`" alt="">
-                  </div>
-                  <span class="traits-current">{{ traits.current }}</span>
-                  <span class="traits-right">
-                    <span class="traits-name">{{ traits.description }}</span>
-                    <div class="traits-levels">{{ traits.levels.split(",").join(' > ') }}</div>
+              <div class="aside-traits-inside-background">
 
-                  </span>
-                </li>
-              </ul>
+              </div>
             </div>
           </div>
         </div>
+        <ul class="aside-traits-list">
+          <li class="traits-item" :class="trait.quality" v-for="trait in traits">
+            <div class="traits-background-container">
+              <img class="traits-icon" draggable="false" :src="`/sets/8/traits/${trait.name}/${trait.id}.png`" alt="">
+            </div>
+            <template v-if="trait.quality != 'inactive'">
+              <span class="traits-current">{{ trait.current }}</span>
+              <span class="traits-right">
+                <span class="traits-name">{{ trait.description }}</span>
+                <div class="traits-levels">
+                  <span class="traits-levels-item" v-for="item in trait.levels.split(',')"
+                    :class="+item > trait.current ? 'inactived' : ''">
+                    {{ item }}
+                  </span>
+                </div>
+              </span>
+            </template>
+            <template v-else>
+              <span class="traits-right">
+                <span class="traits-name">{{ trait.description }}</span>
+                <div class="traits-levels">{{ trait.levels.split(",").join(' / ') }}</div>
+              </span>
+            </template>
+          </li>
+        </ul>
       </div>
     </div>
+    <div class="bench">
+      <div class="bench-position" v-for="i in 9"></div>
+    </div>
   </div>
-  <br> <br>
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
 import { computed, reactive } from 'vue';
-const rate = reactive({
+
+const changeScreenRatio = () => {
+  const screenWidth = document.documentElement.clientWidth
+  const screenHeight = document.documentElement.clientHeight
+  const targetWidth = 1920
+  const targetHeight = 1080
+  const targetRatio = targetWidth / targetHeight
+  const currentRatio = screenWidth / screenHeight
+  let calcRatio;
+  if (targetRatio > currentRatio) {
+    calcRatio = screenWidth / targetWidth
+  } else {
+    calcRatio = screenHeight / targetHeight
+  }
+  document.body.style.transform = `scale(${calcRatio})`
+}
+
+onMounted(() => {
+  changeScreenRatio()
+  //TODO:需要节流操作
+  window.onresize = changeScreenRatio
+})
+
+const audio = {
+  pool: new Map<string, HTMLAudioElement>(),
+  init(audioName: string) {
+    const audio = new Audio(audioName);
+    audio.preload = "auto"
+    this.pool.set(audioName, audio)
+  },
+  play(audioName: string) {
+    const target = this.pool.get(audioName)
+    if (target) {
+      if (target.currentTime != 0) {
+        target.currentTime = 0;
+      }
+      target.play()
+    }
+  }
+}
+
+audio.init("/sfx/buy.ogg")
+audio.init("/sfx/boost.ogg")
+audio.init("/sfx/reroll.ogg")
+
+const arena = reactive({
+  backgroundImageSrc: "/arenas/Arrowhead Arena.png"
+})
+
+const lock = ref(false)
+
+const probability = reactive({
   v1: 19,
   v2: 30,
   v3: 35,
   v4: 15,
   v5: 1
 })
-const fee = reactive({
-  level: 4,
-  refresh: 2
-})
-const exp = reactive({
-  level: 7,
-  curr: 10,
-  max: 56
+
+const cost = reactive({
+  boost: 4,
+  reroll: 2
 })
 
-const traitss = reactive([
+const experienceConfig = [0, 0, 2, 6, 10, 20, 36, 56, 80]
+const experience = reactive({
+  level: 3,
+  curr: 0,
+  max: experienceConfig[3]
+})
+
+const wallet = ref(1000)
+
+const traits = reactive([
   {
-    name: "doushi",
+    name: "Ace",
     quality: "diamondous",
     id: 8001,
     description: "斗士",
@@ -117,7 +192,7 @@ const traitss = reactive([
     levels: "2,4,6,8"
   },
   {
-    name: "doushi",
+    name: "ADMIN",
     quality: "golden",
     id: 8001,
     description: "斗士",
@@ -125,7 +200,7 @@ const traitss = reactive([
     levels: "2,4,6,8"
   },
   {
-    name: "mishuweishi",
+    name: "Aegis",
     quality: "silvery",
     id: 8002,
     description: "秘术卫士",
@@ -133,7 +208,7 @@ const traitss = reactive([
     levels: "2,3,4,5"
   },
   {
-    name: "mishuweishi",
+    name: "AnimaSquad",
     quality: "coppery",
     id: 8003,
     description: "秘术卫士",
@@ -141,99 +216,126 @@ const traitss = reactive([
     levels: "2,3,4,5"
   },
   {
-    name: "zhandoujijia",
+    name: "Duelist",
     quality: "inactive",
-    id: 8111,
-    description: "战斗机甲",
+    id: 8110,
+    description: "超级英雄",
     current: 1,
     levels: "1,4"
   },
-  {
-    name: "zhandoujijia",
-    quality: "inactive",
-    id: 8111,
-    description: "战斗机甲",
-    current: 1,
-    levels: "1,4"
-  },
-  {
-    name: "zhandoujijia",
-    quality: "inactive",
-    id: 8111,
-    description: "战斗机甲",
-    current: 1,
-    levels: "1,4"
-  },
-  {
-    name: "zhandoujijia",
-    quality: "inactive",
-    id: 8111,
-    description: "战斗机甲",
-    current: 1,
-    levels: "1,4"
-  },
-  {
-    name: "zhandoujijia",
-    quality: "inactive",
-    id: 8111,
-    description: "战斗机甲",
-    current: 1,
-    levels: "1,4"
-  }
 ])
 
-const calctraitsContainerStyle = computed(() => {
-  return {
-    height: `${traitss.length * 71}px`
-  }
-})
+const branch = reactive([])
 
-const cards: Array<Card> = reactive([{
-  name: "安妮",
+const playerCardPool: Array<TempPoolCard> = reactive([{
+  name: "阿利斯塔",
   image: {
-    src: "/seasons/s8/champion/image/card/2b7821d798e64bd2.png",
+    src: "/sets/8/champion/Alistar/98f3e641d363194f.png",
   },
-  price: 1,
+  price: 3,
+  isBought: false,
   isHighLight: true,
   traits: ["xiaotiancai", "funiushouhuzhe", "lingnengshi"]
 },
 {
-  name: "薇恩",
+  name: "安妮",
   image: {
-    src: "/seasons/s8/champion/image/card/0b731a3f329d0153.png",
+    src: "/sets/8/champion/Alistar/98f3e641d363194f.png",
   },
   price: 2,
+  isBought: false,
   isHighLight: true,
   traits: ["huanlingzhandui", "qingbaotegong", "juedoudashi"]
 },
 {
   name: "芮尔",
   image: {
-    src: "/seasons/s8/champion/image/card/068f8458f18a12e3.png",
+    src: "/sets/8/champion/Alistar/98f3e641d363194f.png",
   },
   price: 3,
+  isBought: false,
   isHighLight: false,
   traits: ["xingzhishouhuzhe", "huwei"]
 },
 {
   name: "加里奥",
   image: {
-    src: "/seasons/s8/champion/image/card/d14318820844ae60.png",
+    src: "/sets/8/champion/Alistar/98f3e641d363194f.png",
   },
   price: 4,
+  isBought: false,
   isHighLight: true,
   traits: ["xingzhishouhuzhe", "huwei"]
 },
 {
   name: "加里奥",
   image: {
-    src: "/seasons/s8/champion/image/card/441ce5d35663cbfd.png",
+    src: "/sets/8/champion/Alistar/98f3e641d363194f.png",
   },
   price: 5,
+  isBought: false,
   isHighLight: false,
   traits: ["xingzhishouhuzhe", "huwei"]
 }
 ])
+
+const calctraitsContainerStyle = computed(() => {
+  return {
+    height: `${traits.length * 50 + 20}px`
+  }
+})
+
+const computeCardClassName = computed(() => {
+  return (card: TempPoolCard) => {
+    const classNameArr: Array<string> = []
+    classNameArr.push(`quality${card.price}`);
+    if (card.isHighLight) {
+      classNameArr.push('high-light')
+    }
+    if (card.price > wallet.value) {
+      classNameArr.push('disabled')
+    }
+    if (card.isBought) {
+      classNameArr.push('bought')
+    }
+    return classNameArr;
+  }
+
+})
+
+
+const handleLockBtnClick = () => {
+  lock.value = !lock.value
+}
+
+const handleBoostBtnClick = () => {
+  if (wallet.value >= cost.boost) {
+    wallet.value -= cost.boost;
+    experience.curr += cost.boost
+    if (experience.curr >= experience.max) {
+      experience.level += 1;
+      experience.curr = experience.curr - experience.max
+      experience.max = experienceConfig[experience.level]
+    }
+    audio.play("/sfx/boost.ogg")
+  }
+}
+
+const handleRerollBtnClick = () => {
+  if (wallet.value >= cost.reroll) {
+    wallet.value -= cost.reroll;
+    audio.play("/sfx/reroll.ogg")
+  }
+}
+
+const handleCardClick = (card: TempPoolCard) => {
+  if (wallet.value >= card.price) {
+    wallet.value -= card.price
+    card.isBought = true
+    audio.play("/sfx/buy.ogg")
+  }
+}
+
 
 </script>
 
@@ -242,18 +344,9 @@ const cards: Array<Card> = reactive([{
   width: 1920px;
   height: 1080px;
   background-color: #fff;
-  // background-color: rgb(146, 146, 146);
   position: relative;
   overflow: hidden;
   font-family: 'std';
-}
-
-.test {
-  position: absolute;
-  left: 930px;
-  top: 550px;
-  width: 45%;
-  aspect-ratio: 16/10;
 }
 
 .bottom {
@@ -337,7 +430,7 @@ const cards: Array<Card> = reactive([{
     z-index: 10;
   }
 
-  .exp-bar-container {
+  .experience-bar-container {
     display: block;
     position: absolute;
     left: 14px;
@@ -348,7 +441,7 @@ const cards: Array<Card> = reactive([{
     z-index: 10;
   }
 
-  .exp-bar {
+  .experience-bar {
     height: 100%;
     width: 0%;
     background-image: linear-gradient(rgb(102, 242, 242), rgb(152, 239, 246));
@@ -363,9 +456,16 @@ const cards: Array<Card> = reactive([{
   height: 160px;
   margin-top: 2px;
   margin-left: 2px;
-  // overflow: hidden;
 
   button {
+    &.disabled {
+      filter: grayscale(1) brightness(.8);
+    }
+
+    &.disabled:hover {
+      filter: grayscale(1) brightness(.8);
+    }
+
     position: relative;
     display: block;
     width: 186px;
@@ -373,10 +473,13 @@ const cards: Array<Card> = reactive([{
 
     background-color: rgb(11, 18, 18);
     transform-style: preserve-3d;
-    transition: filter .2s;
 
     &:hover {
       filter: brightness(1.25);
+    }
+
+    &:active {
+      filter: brightness(0.4);
     }
 
     &::before {
@@ -385,6 +488,18 @@ const cards: Array<Card> = reactive([{
       top: -2px;
       width: calc(100% + 4px);
       height: calc(100% + 4px);
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      top: 2px;
+      height: 60px;
+      width: 60px;
+      z-index: 2;
+      background-size: 60px 60px;
+      background-repeat: no-repeat;
     }
 
     .mask {
@@ -472,7 +587,7 @@ const cards: Array<Card> = reactive([{
       }
     }
 
-    &.buy-exp {
+    &.boost {
       margin-top: 8px;
       margin-left: 7px;
 
@@ -480,6 +595,10 @@ const cards: Array<Card> = reactive([{
         content: "";
         position: absolute;
         background-image: linear-gradient(rgb(70, 138, 165), rgb(52, 68, 92));
+      }
+
+      &::after {
+        background-image: url("/UI/boost_default.png");
       }
 
       .inner {
@@ -493,7 +612,7 @@ const cards: Array<Card> = reactive([{
       }
     }
 
-    &.refresh {
+    &.reroll {
       margin-top: 12px;
       margin-left: 7px;
 
@@ -501,6 +620,10 @@ const cards: Array<Card> = reactive([{
         content: "";
         position: absolute;
         background-image: linear-gradient(rgb(141, 121, 74), rgb(70, 55, 27));
+      }
+
+      &::after {
+        background-image: url("/UI/reroll_default.png");
       }
 
       .inner {
@@ -516,7 +639,7 @@ const cards: Array<Card> = reactive([{
   }
 }
 
-.rate {
+.probability {
   // opacity: 50%;
   position: absolute;
   left: 170px;
@@ -588,7 +711,6 @@ const cards: Array<Card> = reactive([{
   width: calc(100% - 215px);
   height: 100%;
   box-shadow: 0 0 0 2px rgb(12, 30, 31);
-  // box-shadow: 0 0 0 2px rgb(8, 229, 240);
 
   background-color: rgb(13, 20, 21);
   display: flex;
@@ -604,9 +726,9 @@ const cards: Array<Card> = reactive([{
     color: rgb(240, 230, 210);
     font-weight: bold;
     position: relative;
-    overflow: hidden;
-    transition: filter .2s;
+    box-shadow: 0 0 0 1.75px rgb(0, 0, 6);
 
+    // overflow: hidden;
     &:hover {
       filter: brightness(1.2);
     }
@@ -643,6 +765,16 @@ const cards: Array<Card> = reactive([{
           rgba(255, 255, 255, 0) 75%,
           rgba(255, 255, 255, 0) 100%);
       animation: highlight 4s linear infinite;
+    }
+
+    &.disabled {
+      .image {
+        filter: grayscale(1);
+      }
+    }
+
+    &.bought {
+      visibility: hidden;
     }
 
     .image {
@@ -688,15 +820,14 @@ const cards: Array<Card> = reactive([{
           display: inline-block;
           position: relative;
           width: 22px;
-          height: 23px;
+          height: 25px;
           margin-left: 1px;
           margin-bottom: 4px;
           margin-right: 6px;
-          transform-style: preserve-3d;
-          background-image: url("/jb.png");
+          // transform-style: preserve-3d;
+          background-image: url("/UI/inactive.png");
+          background-size: 22px 25px;
           background-repeat: no-repeat;
-          background-size: 122px 48px;
-          background-position: 0px 0px;
 
           .traits {
             position: absolute;
@@ -735,7 +866,6 @@ const cards: Array<Card> = reactive([{
         content: "";
         position: absolute;
         top: 0;
-        // background-color: red;
         top: 8px;
         right: 22px;
         height: 13px;
@@ -839,11 +969,11 @@ const cards: Array<Card> = reactive([{
   z-index: 10;
 
   &.state-locked::before {
-    background-image: url("/UI/lock.svg");
+    background-image: url("/UI/lock.png");
   }
 
   &.state-unlocked::before {
-    background-image: url("/UI/unlock.svg");
+    background-image: url("/UI/unlock.png");
   }
 
   // green border and content
@@ -852,10 +982,8 @@ const cards: Array<Card> = reactive([{
     width: calc(100% - 6px);
     height: calc(100% - 3px);
     box-shadow: 0 0 0 2px rgb(34, 91, 91) inset;
-    background-color: rgb(21, 32, 33);
     background-repeat: no-repeat;
-    background-size: 24px 24px;
-    background-position: 21px 4px;
+    background-size: 65px 33px;
     position: absolute;
     top: 3px;
     left: 3px;
@@ -874,8 +1002,6 @@ const cards: Array<Card> = reactive([{
     transform: translateZ(-0.1px) translateY(-4px);
   }
 }
-
-
 
 .wallet-shadow {
   @wallet-shadow-color: rgba(0, 0, 0, 0.25);
@@ -1104,10 +1230,10 @@ const cards: Array<Card> = reactive([{
 
   .aside-traits-shadow {
     width: 100%;
-    // height: 530px;
     background-color: @traits-shadow-color;
     position: relative;
     z-index: 1;
+    transform: translateY(-4px);
 
     &::before {
       content: "";
@@ -1245,8 +1371,6 @@ const cards: Array<Card> = reactive([{
     background-color: @traits-inside-background-color;
     position: absolute;
     z-index: 5;
-    display: flex;
-    flex-direction: column;
     padding-left: 12px;
 
     &::before {
@@ -1273,20 +1397,40 @@ const cards: Array<Card> = reactive([{
   }
 }
 
-.traits-item {
-  list-style: none;
-  height: 52px;
-  border-radius: 0 6px 6px 0;
-  min-width: 200px;
-  margin: 8px 0;
-  transform: translateX(20px);
-  background-color: rgba(0, 0, 0, .4);
+.aside-traits-list {
+  // padding: 20px 0;
+  position: absolute;
+  top: 0;
+  left: 26px;
+  width: 60vw;
+  z-index: 10;
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.traits-item {
+  display: flex;
   align-items: center;
+  list-style: none;
+  position: relative;
+  height: 40px;
+  padding: 4px 0;
+  border-top-right-radius: 10px 4px;
+  border-bottom-right-radius: 10px 4px;
+  background-color: rgba(0, 0, 0, .4);
 
+  &:first-of-type {
+    margin-top: 13px;
+  }
 
-  &.diamondous .traits-container {
+  &:last-of-type {
+    margin-bottom: 13px;
+  }
+
+  &.diamondous .traits-background-container {
     background-image: url("/UI/ef13d675a12d6c13.png");
 
     &:hover {
@@ -1294,7 +1438,7 @@ const cards: Array<Card> = reactive([{
     }
   }
 
-  &.golden .traits-container {
+  &.golden .traits-background-container {
     background-image: url("/UI/df5c23e66a672d31.png");
 
     &:hover {
@@ -1302,7 +1446,7 @@ const cards: Array<Card> = reactive([{
     }
   }
 
-  &.silvery .traits-container {
+  &.silvery .traits-background-container {
     background-image: url("/UI/adf2e5d37c424faa.png");
 
     &:hover {
@@ -1310,7 +1454,7 @@ const cards: Array<Card> = reactive([{
     }
   }
 
-  &.coppery .traits-container {
+  &.coppery .traits-background-container {
     background-image: url("/UI/bd6c63e1abb765af.png");
 
     &:hover {
@@ -1318,7 +1462,7 @@ const cards: Array<Card> = reactive([{
     }
   }
 
-  &.inactive .traits-container {
+  &.inactive .traits-background-container {
     background-image: url("/UI/inactive.png");
 
     .traits-icon {
@@ -1326,20 +1470,22 @@ const cards: Array<Card> = reactive([{
     }
   }
 
-  .traits-container {
-    flex-shrink: 0;
-    height: 58px;
-    background-size: 52px 56px;
+  &.inactive .traits-right {
+    color: rgb(167, 162, 146);
+  }
+
+  .traits-background-container {
+    width: 38px;
+    height: 45px;
+    background-size: 38px 45px;
     background-repeat: no-repeat;
-    background-position: 1px 0px;
-    margin-left: -27px;
+    background-position: 0 0px;
+    transform: translateX(-18px);
+    margin-right: -11px;
+
 
     .traits-icon {
       padding: 8px;
-      // padding-top: 7px;
-      // padding-bottom: 7px;
-      // padding-left: 7px;
-      // padding-right: 4px;
       width: 100%;
       height: 100%;
     }
@@ -1347,34 +1493,73 @@ const cards: Array<Card> = reactive([{
 
   .traits-current {
     background-color: rgb(57, 57, 57);
-    margin-left: 8px;
-    margin-right: 8px;
-    font-size: 24px;
+    font-size: 20px;
     border-radius: 6px;
-    padding: 6px 8px;
+    height: 100%;
+    padding: 0 4.5px;
+    padding-top: 8px;
     color: #fff;
   }
 
   .traits-right {
+    margin-left: 11px;
+    margin-right: 13px;
+    height: 100%;
     color: rgb(240, 230, 210);
 
     .traits-name {
-      font-size: 18px;
-      height: 18px;
-      line-height: 25px;
+      font-size: 15.5px;
       font-weight: bold;
     }
 
     .traits-levels {
-      font-size: 18px;
+      letter-spacing: 1px;
+      font-size: 14px;
       font-weight: bold;
+      text-shadow: 1px 1px 1px #000;
+
+      .traits-levels-item.inactived {
+        color: rgb(99, 96, 87);
+      }
+
+      .traits-levels-item::before {
+        content: ">";
+        font-weight: bold;
+        display: inline-block;
+        transform: scale(0.5);
+        margin: 0 4px;
+      }
+
+      .traits-levels-item:first-of-type::before {
+        content: none;
+      }
     }
   }
 }
 
+.traits {
+  background-repeat: no-repeat;
+  background-size: 13px 16px;
+  background-position: 4.5px 3.5px;
+  filter: invert(1);
+}
 
+.bench {
+  position: absolute;
+  left: 360px;
+  right: 494px;
+  height: 88px;
+  bottom: 248px;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
 
-.bg {
-  // opacity: 0%;
+  .bench-position {
+    height: 100%;
+    box-shadow: 0 0 0 2px #000 inset;
+  }
+}
+
+.arena {
+  // opacity: 50%;
 }
 </style>
