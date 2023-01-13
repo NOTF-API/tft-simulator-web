@@ -3,11 +3,12 @@ type Hero = {
     quality: 1 | 2 | 3 | 4 | 5
 }
 
-type Card = {
+type TempPoolCard = {
     name: string
     image: {
         src: string
     },
+    isBought: boolean,
     price: number
     isHighLight: boolean
     traits?: Array<string>

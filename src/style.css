@@ -1,11 +1,11 @@
 body {
   width: 100vw;
   height: 100vh;
-  /* transform: scale(0.87); */
-  /* display: flex; */
-  /* justify-content: center; */
-  /* align-items: center; */
-  /* overflow: hidden; */
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
 * {

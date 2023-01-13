@@ -1,0 +1,83 @@
+{
+  "ADMIN": {
+    "name": "AI程序"
+  },
+  "AnimaSquad": {
+    "name": "幻灵战队"
+  },
+  "Civilian": {
+    "name": "平民英雄"
+  },
+  "Corrupted": {
+    "name": "堕落使者"
+  },
+  "Gadgeteen": {
+    "name": "小天才"
+  },
+  "LaserCorps": {
+    "name": "源计划：激光特工"
+  },
+  "MechaPRIME": {
+    "name": "战斗机甲"
+  },
+  "OxForce": {
+    "name": "福牛守护者"
+  },
+  "StarGuardian": {
+    "name": "星之守护者"
+  },
+  "Supers": {
+    "name": "超级英雄"
+  },
+  "Threat": {
+    "name": "怪兽"
+  },
+  "TheUnderground": {
+    "name": "地下魔盗团"
+  },
+  "Ace": {
+    "name": "精英战士"
+  },
+  "Aegis": {
+    "name": "秘术卫士"
+  },
+  "Arsenal": {
+    "name": "枪神"
+  },
+  "Brawler": {
+    "name": "斗士"
+  },
+  "Defender": {
+    "name": "护卫"
+  },
+  "Duelist": {
+    "name": "决斗大师"
+  },
+  "Forecaster": {
+    "name": "气象主播"
+  },
+  "Hacker": {
+    "name": "黑客"
+  },
+  "Heart": {
+    "name": "爱心使者"
+  },
+  "Mascot": {
+    "name": "吉祥物"
+  },
+  "Prankster": {
+    "name": "淘气包"
+  },
+  "Recon": {
+    "name": "情报特工"
+  },
+  "Renegade": {
+    "name": "混沌战士"
+  },
+  "Spellslinger": {
+    "name": "灵能使"
+  },
+  "Sureshot": {
+    "name": "枪手"
+  }
+}

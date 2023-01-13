@@ -1,0 +1,83 @@
+{
+  "ADMIN": {
+    "name": "A.D.M.I.N"
+  },
+  "AnimaSquad": {
+    "name": "Anima Squad"
+  },
+  "Civilian": {
+    "name": "Civilian"
+  },
+  "Corrupted": {
+    "name": "Corrupted"
+  },
+  "Gadgeteen": {
+    "name": "Gadgeteen"
+  },
+  "LaserCorps": {
+    "name": "LaserCorps"
+  },
+  "MechaPRIME": {
+    "name": "Mecha: PRIME"
+  },
+  "OxForce": {
+    "name": "Ox Force"
+  },
+  "StarGuardian": {
+    "name": "Star Guardian"
+  },
+  "Supers": {
+    "name": "Supers"
+  },
+  "Threat": {
+    "name": "Threat"
+  },
+  "TheUnderground": {
+    "name": "The Underground"
+  },
+  "Ace": {
+    "name": "Ace"
+  },
+  "Aegis": {
+    "name": "Aegis"
+  },
+  "Arsenal": {
+    "name": "Arsenal"
+  },
+  "Brawler": {
+    "name": "Brawler"
+  },
+  "Defender": {
+    "name": "Defender"
+  },
+  "Duelist": {
+    "name": "Duelist"
+  },
+  "Forecaster": {
+    "name": "Forecaster"
+  },
+  "Hacker": {
+    "name": "Hacker"
+  },
+  "Heart": {
+    "name": "Heart"
+  },
+  "Mascot": {
+    "name": "Mascot"
+  },
+  "Prankster": {
+    "name": "Prankster"
+  },
+  "Recon": {
+    "name": "Recon"
+  },
+  "Renegade": {
+    "name": "Renegade"
+  },
+  "Spellslinger": {
+    "name": "Spellslinger"
+  },
+  "Sureshot": {
+    "name": "Sureshot"
+  }
+}
